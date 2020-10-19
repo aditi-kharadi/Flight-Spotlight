@@ -44,7 +44,7 @@ const checkJwt = jwt({
 
 
 router.get("/", (req, res) => {
-  res.render("home", { title: "Home" });
+ res.render("home", { title: "Home" });
 });
 
 router.get("/spotlight", secured(), (req, response, next) => {
@@ -62,7 +62,77 @@ router.get("/spotlight", secured(), (req, response, next) => {
     data: {}
   });
 
+  console.log('profile', req.user);
+
 });
+
+
+/* GET user profile. */
+router.get('/user', secured(), function (req, res, next) {
+  const { _raw, _json, ...userProfile } = req.user;
+  res.render('user', {
+    userProfile: JSON.stringify(userProfile, null, 2),
+    title: 'Profile page'
+  });
+});
+
+// Perform the login, after login Auth0 will redirect to callback
+router.get('/login', passport.authenticate('oauth2', {
+   session: true,
+   scope: ''
+}), function (req, res) {
+  res.redirect('/');
+});
+
+
+router.get('/callback', function (req, res, next) {
+  passport.authenticate('oauth2', function (err, user, info) {
+    if (err) { return next(err); }
+    if (!user) { return res.redirect('/login'); }
+    req.logIn(user, function (err) {
+      if (err) { return next(err); }
+      const returnTo = req.session.returnTo;
+      delete req.session.returnTo;
+      res.redirect(returnTo || '/spotlight');
+    });
+  })(req, res, next);
+});
+
+// Perform session logout and redirect to homepage
+router.get('/logout', (req, res) => {
+  req.logout();
+
+  var returnTo = req.protocol + '://' + req.hostname;
+  var port = req.connection.localPort;
+  if (port !== undefined && port !== 80 && port !== 443) {
+    returnTo += ':' + port;
+  }
+
+  //   {
+
+  ///// This line is creating problem...
+
+  // var logoutURL = new url.URL(
+  //   util.format('http://%s/o/revoke_token', process.env.PASSPORT_DOMAIN)
+  // );
+  
+
+  //  }
+  var searchString = querystring.stringify({
+    client_id: process.env.PASSPORT_WEB_CLIENT_ID,
+    returnTo: returnTo
+  });
+  
+  //logoutURL.search = searchString;
+  req.session.destroy(() => res.redirect('/'));
+  //res.redirect(logoutURL);
+});
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////\
+
 
 
 router.post("/set_air_traffic", checkJwt, jwtAuthz(['spotlight.write.air_traffic']), [
@@ -155,33 +225,6 @@ router.post("/set_flight_declaration", checkJwt, jwtAuthz(['spotlight.write.flig
 });
 
 
-// router.post("/get_registry_data",secured(), [
-//   check('operator_id').isAlphanumeric(),
-//   check('token').isAlphanumeric()
-
-// ], (req, response, next) => {
-//   const errors = validationResult(req);
-//   if (!errors.isEmpty()) {
-//     return response.status(422).json({ errors: errors.array() });
-//   }
-//   else {
-
-//     const req_body =req.body;
-//     request.post( {
-//       'headers': {'Content-Type' : 'application/x-www-form-urlencoded' },
-//       'url':     'https://aircraftregistry.herokuapp.com/api/v1/operator',
-//       'auth': {
-//         'bearer': req_body.token
-//       },
-//       'form': { 'operator_id': req_body.operator_id},
-//       method: 'POST'
-//     }, function (e, r, body) {
-//       console.log(body);
-//     });
-
-//   }
-// });
-
 router.get("/get_flight_declarations", secured(), (req, response, next) => {
   function get_f_d(callback) {
     redis_client.hgetall('fd', function (err, object) {
@@ -263,61 +306,7 @@ router.post("/set_aoi", secured(), check('geo_json').custom(submitted_aoi => {
 });
 
 
-/* GET user profile. */
-router.get('/user', secured(), function (req, res, next) {
-  const { _raw, _json, ...userProfile } = req.user;
-  res.render('user', {
-    userProfile: JSON.stringify(userProfile, null, 2),
-    title: 'Profile page'
-  });
-});
-
-// Perform the login, after login Auth0 will redirect to callback
-router.get('/login', passport.authenticate('oauth2', {
-  session: true,
-  scope: ''
-}), function (req, res) {
-  res.redirect('/');
-});
 
 
-router.get('/callback', function (req, res, next) {
-  passport.authenticate('oauth2', function (err, user, info) {
-    if (err) { return next(err); }
-    if (!user) { return res.redirect('/login'); }
-    req.logIn(user, function (err) {
-      if (err) { return next(err); }
-      const returnTo = req.session.returnTo;
-      delete req.session.returnTo;
-      res.redirect(returnTo || '/spotlight');
-    });
-  })(req, res, next);
-});
-
-
-router.get("/logout", (req, res) => {
-  req.logOut();
-
-  let returnTo = req.protocol + "://" + req.hostname;
-  const port = req.connection.localPort;
-
-  if (port !== undefined && port !== 80 && port !== 443) {
-    returnTo =
-      process.env.NODE_ENV === "production"
-        ? `${returnTo}/`
-        : `${returnTo}:${port}/`;
-  }
-
-  const logoutURL = new URL(
-    util.format("https://%s/logout", process.env.AUTH0_DOMAIN)
-  );
-  const searchString = querystring.stringify({
-    client_id: process.env.AUTH0_CLIENT_ID,
-    returnTo: returnTo
-  });
-  logoutURL.search = searchString;
-
-  res.redirect(logoutURL);
-});
 
 module.exports = router;

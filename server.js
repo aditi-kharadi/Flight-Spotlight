@@ -17,11 +17,14 @@
     const bodyParser = require("body-parser");
     const authRouter = require("./routes/auth");
     
+
+    //let expiryDate = new Date(Date.now());
+
     const session = {
         secret: process.env.APP_SECRET,
         cookie: {},
         resave: false,
-        saveUninitialized: false
+        saveUninitialized: true,
       };
 
     let strategy = new OAuth2Strategy({
@@ -52,10 +55,11 @@
             return done(e);
         }
         done(null, data);
+        //console.log("--> ", process.env.PASSPORT_USERINFO_URL);
         });
     };
-    
-        
+
+
     var app = express();
     app.use(compression());
     app.use((req, res, next) => {
@@ -75,7 +79,7 @@
     if (app.get("env") === "production") {
         // Serve secure cookies, requires HTTPS
         session.cookie.secure = true;
-        }
+    }
 
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({

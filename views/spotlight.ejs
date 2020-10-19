@@ -39,8 +39,17 @@
                           <br>
                         <div class="form-actions">
                             <button class="button" id="retrive_flights" type="submit">Stream flights</button>
+                            
                         </div>
+
+                        <div class="page" id="content-profile">          
+                            <br>
+                                   
+                        </div>
+
                       </form>
+
+                      <a class="btn btn-primary btn-margin" href="/logout" >Log Out</a>  
                       
                        <div class="d-none loading-spinner" id="spinner-cont"><br>
                         <img src="/assets/img/spinner.gif" height="30px">
@@ -66,6 +75,25 @@
 
     <script type="text/javascript">
         
+
+// let logOut = () => {
+
+//   fetch('/logout', {
+//     method: 'POST',
+//     credentials: 'same-origin', // <--- YOU NEED THIS LINE
+//     redirect: "follow"
+//   }).then(res => {
+//     console.log(res);
+//   }).catch(err => {
+//     console.log(err);
+//   });
+
+// }
+// fetch('/logout', { method: 'POST', credentials: 'include' })
+//     .then(res=> console.log("->"));
+
+
+
         var socketHost = location.origin.replace(/^http/, 'ws');
         let list = document.getElementById("latest-status");
         var addToList = function (item_value) {
@@ -79,6 +107,7 @@
         }
         
         const email  = '<%= userProfile.email %>';
+
         var socket = io.connect(socketHost);
         socket.on('connect_failed', function() {
             errorMsg('Data connection failed, please contact your administrator.');
@@ -88,9 +117,11 @@
         });
         socket.on('welcome', function(msg) {
             console.log('Welcome message:', msg);
+            console.log('email:', email);
         });
         socket.on('connect', function() {
             socket.emit('room', email);
+            //res.redirect('/');
         });
         socket.on('connect_timeout', function() {
             console.log("timed out");
@@ -103,7 +134,7 @@
                 if (spotlight_data.alert_type =='aoi'){
                 
                     const cur_result = spotlight_data.results.object;
-                    // console.log(Math.floor(Date.now() / 1000) +":  " + cur_result.coordinates[1], cur_result.coordinates[0], cur_result.coordinates[2]);                    
+                    
                     viewer.entities.add({
                         position : Cesium.Cartesian3.fromDegrees(cur_result.coordinates[1], cur_result.coordinates[0], cur_result.coordinates[2]),
                         point : {
